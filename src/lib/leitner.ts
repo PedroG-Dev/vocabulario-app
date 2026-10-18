@@ -7,6 +7,14 @@ export const INTERVAL_DAYS: Record<Box, number> = { 1: 1, 2: 2, 3: 4, 4: 8, 5: 1
 
 export const ROMAN: Record<Box, string> = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V' }
 
+export const ORBIT_NAME: Record<Box, string> = {
+  1: 'Nuevas',
+  2: 'Aprendiendo',
+  3: 'En progreso',
+  4: 'Consolidadas',
+  5: 'Dominadas',
+}
+
 export function todayISO(date = new Date()): string {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')

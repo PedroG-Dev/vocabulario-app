@@ -1,19 +1,23 @@
 import { motion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { describeNext, ROMAN } from '../lib/leitner'
+import { describeNext, ORBIT_NAME, ROMAN } from '../lib/leitner'
 import { exportJSON, parseImport } from '../lib/storage'
-import type { Word } from '../lib/types'
+import type { Box, Progress, Word } from '../lib/types'
 
 interface Props {
   words: Word[]
+  progress: Progress
   today: string
+  /** Shows only one orbit until the user clears the filter */
+  box?: Box | null
   onSelect: (word: Word) => void
-  onImport: (words: Word[]) => void
+  onImport: (words: Word[], progress?: Progress) => void
   onClose: () => void
 }
 
-export function Logbook({ words, today, onSelect, onImport, onClose }: Props) {
+export function Logbook({ words, progress, today, box = null, onSelect, onImport, onClose }: Props) {
   const [q, setQ] = useState('')
+  const [boxFilter, setBoxFilter] = useState<Box | null>(box)
   const [msg, setMsg] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -26,9 +30,10 @@ export function Logbook({ words, today, onSelect, onImport, onClose }: Props) {
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase()
     return words
+      .filter((w) => !boxFilter || w.box === boxFilter)
       .filter((w) => !needle || w.term.toLowerCase().includes(needle) || w.translation.toLowerCase().includes(needle))
       .sort((a, b) => a.due.localeCompare(b.due) || a.term.localeCompare(b.term))
-  }, [words, q])
+  }, [words, q, boxFilter])
 
   return (
     <motion.div className="sheet-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
@@ -42,8 +47,8 @@ export function Logbook({ words, today, onSelect, onImport, onClose }: Props) {
       >
         <header className="sheet-head">
           <div>
-            <p className="mono eyebrow">{words.length} palabras</p>
-            <h2 className="sheet-title">Bitácora</h2>
+            <p className="mono eyebrow">{boxFilter ? `${list.length} de ${words.length} palabras` : `${words.length} palabras`}</p>
+            <h2 className="sheet-title">{boxFilter ? `${ROMAN[boxFilter]} · ${ORBIT_NAME[boxFilter]}` : 'Bitácora'}</h2>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label="Cerrar">
             ✕
@@ -51,6 +56,11 @@ export function Logbook({ words, today, onSelect, onImport, onClose }: Props) {
         </header>
 
         <input className="search" placeholder="Buscar…" value={q} onChange={(e) => setQ(e.target.value)} />
+        {boxFilter && (
+          <button className="ghost-btn log-filter" onClick={() => setBoxFilter(null)}>
+            Ver todas las órbitas ✕
+          </button>
+        )}
 
         <ul className="log-list">
           {list.map((w) => (
@@ -75,7 +85,7 @@ export function Logbook({ words, today, onSelect, onImport, onClose }: Props) {
             Tus palabras viven solo en este navegador. Exporta de vez en cuando para tener una copia.
           </p>
           <div className="drawer-actions">
-            <button className="ghost-btn" onClick={() => exportJSON(words)} disabled={!words.length}>
+            <button className="ghost-btn" onClick={() => exportJSON(words, progress)} disabled={!words.length}>
               Exportar
             </button>
             <button className="ghost-btn" onClick={() => fileRef.current?.click()}>
@@ -94,8 +104,8 @@ export function Logbook({ words, today, onSelect, onImport, onClose }: Props) {
               if (!file) return
               try {
                 const imported = await parseImport(file)
-                onImport(imported)
-                setMsg(`${imported.length} palabras importadas`)
+                onImport(imported.words, imported.progress)
+                setMsg(`${imported.words.length} palabras importadas`)
               } catch {
                 setMsg('No se pudo leer el archivo')
               }

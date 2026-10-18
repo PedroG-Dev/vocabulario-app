@@ -18,3 +18,10 @@ export interface WordInput {
   translation: string
   context?: string
 }
+
+export interface Progress {
+  /** Cards answered per local day (YYYY-MM-DD) */
+  reviewed: Record<string, number>
+  /** Days on which the daily goal was met */
+  done: string[]
+}
