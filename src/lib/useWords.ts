@@ -37,11 +37,16 @@ export function useWords(today: string) {
     setWords((ws) => ws.filter((w) => w.id !== id))
   }, [])
 
-  /** Fusiona por id: lo importado sustituye a lo existente */
+  /** Fusiona por id (lo importado sustituye); ignora palabras nuevas cuyo término ya existe */
   const importWords = useCallback((incoming: Word[]) => {
     setWords((ws) => {
       const map = new Map(ws.map((w) => [w.id, w]))
-      incoming.forEach((w) => map.set(w.id, w))
+      const terms = new Set(ws.map((w) => w.term.toLowerCase()))
+      incoming.forEach((w) => {
+        if (!map.has(w.id) && terms.has(w.term.toLowerCase())) return
+        map.set(w.id, w)
+        terms.add(w.term.toLowerCase())
+      })
       return [...map.values()]
     })
   }, [])

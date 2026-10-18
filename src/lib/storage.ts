@@ -1,4 +1,5 @@
 import { get, set } from 'idb-keyval'
+import { createWord, todayISO } from './leitner'
 import { emptyProgress } from './progress'
 import type { Progress, Word } from './types'
 
@@ -46,12 +47,20 @@ export async function parseImport(file: File): Promise<ImportResult> {
     raw && typeof raw.reviewed === 'object' && Array.isArray(raw.done)
       ? { reviewed: raw.reviewed, done: raw.done.filter((d: unknown) => typeof d === 'string') }
       : undefined
-  return {
-    progress,
-    words: words.filter(
-      (w): w is Word =>
-        w && typeof w.id === 'string' && typeof w.term === 'string' && typeof w.translation === 'string' &&
-        [1, 2, 3, 4, 5].includes(w.box) && typeof w.due === 'string',
-    ),
+  const today = todayISO()
+  const parsed: Word[] = []
+  for (const w of words) {
+    if (!w || typeof w.term !== 'string' || typeof w.translation !== 'string') continue
+    if (!w.term.trim() || !w.translation.trim()) continue
+    const full = typeof w.id === 'string' && [1, 2, 3, 4, 5].includes(w.box) && typeof w.due === 'string'
+    parsed.push(
+      full
+        ? (w as Word)
+        : createWord(
+            { term: w.term, translation: w.translation, context: typeof w.context === 'string' ? w.context : undefined },
+            today,
+          ),
+    )
   }
+  return { progress, words: parsed }
 }
